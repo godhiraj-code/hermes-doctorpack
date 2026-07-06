@@ -1,0 +1,12 @@
+name: doctorpack
+version: 0.1.0
+description: Local-first diagnostics, safety audit, and incident postmortems for Hermes Agent.
+author: Dhiraj Das + Hermes Agent
+provides_tools:
+  - doctorpack_config_audit
+  - doctorpack_plugin_check
+  - doctorpack_postmortem
+provides_commands:
+  - doctorpack
+provides_cli_commands:
+  - doctorpack

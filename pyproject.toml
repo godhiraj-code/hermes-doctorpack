@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "hermes-doctorpack"
+version = "0.1.0"
+description = "Local-first diagnostics, safety audit, and incident postmortems for Hermes Agent."
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [{ name = "Dhiraj Das" }]
+license = { text = "MIT" }
+keywords = ["hermes-agent", "plugin", "diagnostics", "postmortem", "agent-safety"]
+dependencies = ["PyYAML>=6.0"]
+
+[project.entry-points."hermes_agent.plugins"]
+doctorpack = "hermes_doctorpack"
+
+[project.scripts]
+hermes-doctorpack = "hermes_doctorpack.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["hermes_doctorpack*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
