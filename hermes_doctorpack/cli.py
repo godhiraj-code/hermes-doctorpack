@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import shlex
 from typing import Any
 
 from .audit import config_audit, plugin_check, postmortem
@@ -53,7 +54,10 @@ def doctorpack_command(raw_args: str | argparse.Namespace = "") -> str:
         result = _run(raw_args)
         return json.dumps(result, indent=2, ensure_ascii=False) if getattr(raw_args, "json", False) else _summarize(result)
 
-    argv = str(raw_args or "").split()
+    try:
+        argv = shlex.split(str(raw_args or ""))
+    except ValueError as exc:
+        return f"Usage: /doctorpack [scan|plugins|postmortem] [--lookback-hours N]\nParse error: {exc}"
     parser = argparse.ArgumentParser(prog="doctorpack", add_help=False)
     register_cli(parser)
     try:

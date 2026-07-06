@@ -457,7 +457,7 @@ def _render_report(title: str, home: Path, lookback: int, findings: list[Finding
         f"# {redact(title)}",
         "",
         f"Generated: {_now_utc().isoformat()}",
-        f"Hermes home: `{redact(home)}`",
+        "Hermes home: `[REDACTED_HERMES_HOME]`",
         f"Lookback: {lookback}h",
         "",
         "## Executive summary",

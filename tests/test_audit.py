@@ -74,4 +74,6 @@ def test_postmortem_writes_markdown_report(tmp_path):
     assert report.exists()
     text = report.read_text(encoding="utf-8")
     assert "# Test Incident" in text
+    assert "[REDACTED_HERMES_HOME]" in text
+    assert str(tmp_path) not in text
     assert "Difference from built-in Hermes doctor/debug/logs" in text

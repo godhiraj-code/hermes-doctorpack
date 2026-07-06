@@ -48,6 +48,12 @@ A sanitized sample report is included here:
 
 - [`docs/sample-report.md`](docs/sample-report.md)
 
+Scenario QA reports generated from fake Hermes homes are here:
+
+- [`docs/scenario-reports/`](docs/scenario-reports/)
+
+Those scenarios cover clean config, unsafe config, installed-but-not-enabled plugin, enabled/disabled conflict, and redacted plugin log noise.
+
 Postmortem reports look like this:
 
 ```md

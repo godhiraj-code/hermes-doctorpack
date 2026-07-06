@@ -9,7 +9,7 @@ description = "Local-first diagnostics, safety audit, and incident postmortems f
 readme = "README.md"
 requires-python = ">=3.10"
 authors = [{ name = "Dhiraj Das" }]
-license = { text = "MIT" }
+license = "MIT"
 keywords = ["hermes-agent", "plugin", "diagnostics", "postmortem", "agent-safety"]
 dependencies = ["PyYAML>=6.0"]
 
