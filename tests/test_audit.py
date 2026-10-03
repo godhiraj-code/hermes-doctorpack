@@ -1,7 +1,41 @@
 import json
+import pytest
 from pathlib import Path
 
 from hermes_doctorpack.audit import config_audit, plugin_check, postmortem, redact
+
+
+@pytest.mark.parametrize("raw", [
+    '{"api_key": "synthetic-private-value"}',
+    "password='synthetic private value'",
+    "Authorization: Bearer synthetic-private-value",
+    "Authorization: Basic synthetic-private-value",
+    '{"Authorization": "Bearer synthetic-private-value"}',
+    "Bearer synthetic-private-value",
+    "github_pat_synthetic_private_value_123456789",
+])
+def test_redaction_covers_quoted_secrets_and_authorization(raw):
+    result = redact(raw)
+    assert "synthetic" not in result
+    assert "[REDACTED]" in result
+
+
+@pytest.mark.parametrize("raw", [
+    json.dumps({"password": 'prefix"synthetic-tail'}),
+    json.dumps({"password": r"prefix\synthetic-tail"}),
+    "password='prefix''synthetic-tail'",
+    'password="unterminated synthetic-tail',
+    'password="synthetic-tail\nnext safe log line',
+])
+def test_redaction_consumes_escaped_and_truncated_quoted_values(raw):
+    result = redact(raw)
+    assert "synthetic-tail" not in result
+    assert "[REDACTED]" in result
+
+
+def test_quoted_redaction_preserves_following_log_fields():
+    raw = json.dumps({"password": 'prefix"synthetic-tail', "status": "healthy"})
+    assert '"status": "healthy"' in redact(raw)
 
 
 def write(path: Path, text: str):
