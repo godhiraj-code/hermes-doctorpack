@@ -23,7 +23,11 @@ except Exception:  # pragma: no cover
     yaml = None
 
 SECRET_PATTERNS: tuple[re.Pattern[str], ...] = (
-    re.compile(r"(?i)([\"']?(?:api[_-]?key|token|secret|password|passwd|pwd|authorization)[\"']?)(\s*[:=]\s*)([\"'])([^\r\n]*?)\3"),
+    re.compile(
+        r"(?i)([\"']?(?:api[_-]?key|token|secret|password|passwd|pwd|authorization)[\"']?)"
+        r"(\s*[:=]\s*)([\"'])"
+        r"((?:\\[^\r\n]|\3\3|(?!\3)[^\\\r\n])*)(?:\3|(?=\r?\n|$))"
+    ),
     re.compile(r"(?i)(authorization)(\s*[:=]\s*)((?:bearer|basic)\s+[^\s'\"{},;]+)"),
     re.compile(r"(?i)(\bbearer\s+[^\s'\"{},;]+)"),
     re.compile(r"(github_pat_[A-Za-z0-9_]{20,})"),

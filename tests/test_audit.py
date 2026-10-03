@@ -20,6 +20,24 @@ def test_redaction_covers_quoted_secrets_and_authorization(raw):
     assert "[REDACTED]" in result
 
 
+@pytest.mark.parametrize("raw", [
+    json.dumps({"password": 'prefix"synthetic-tail'}),
+    json.dumps({"password": r"prefix\synthetic-tail"}),
+    "password='prefix''synthetic-tail'",
+    'password="unterminated synthetic-tail',
+    'password="synthetic-tail\nnext safe log line',
+])
+def test_redaction_consumes_escaped_and_truncated_quoted_values(raw):
+    result = redact(raw)
+    assert "synthetic-tail" not in result
+    assert "[REDACTED]" in result
+
+
+def test_quoted_redaction_preserves_following_log_fields():
+    raw = json.dumps({"password": 'prefix"synthetic-tail', "status": "healthy"})
+    assert '"status": "healthy"' in redact(raw)
+
+
 def write(path: Path, text: str):
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(text, encoding="utf-8")
