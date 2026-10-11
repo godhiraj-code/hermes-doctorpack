@@ -82,6 +82,11 @@ def redact(text: Any) -> str:
         def repl(match: re.Match[str]) -> str:
             if match.re.pattern.startswith("(?i)(https?"):
                 return f"{match.group(1)}[REDACTED]@"
+            if len(match.groups()) == 4:
+                # Keep quoted replacements bounded so later passes cannot eat
+                # adjacent diagnostic fields such as |status=healthy.
+                quote = match.group(3)
+                return f"{match.group(1)}{match.group(2)}{quote}[REDACTED]{quote}"
             if len(match.groups()) >= 3:
                 return f"{match.group(1)}{match.group(2)}[REDACTED]"
             return "[REDACTED]"
@@ -235,6 +240,14 @@ def _redact_obj(obj: Any) -> Any:
         out = {}
         for k, v in obj.items():
             safe_key = redact(k) if isinstance(k, str) else k
+            if safe_key != k:
+                # Masked keys can converge. Preserve every value and reserve
+                # unchanged keys so neighboring diagnostic fields keep their names.
+                base_key = safe_key
+                suffix = 2
+                while safe_key in out or safe_key in obj:
+                    safe_key = f"{base_key} ({suffix})"
+                    suffix += 1
             if re.search(r"(?i)(key|token|secret|password|passwd|pwd|authorization|client_secret|webhook)", str(k)):
                 out[safe_key] = "[REDACTED]"
             else:
@@ -415,11 +428,32 @@ def postmortem(args: dict[str, Any]) -> dict[str, Any]:
     output_dir.mkdir(parents=True, exist_ok=True)
     stamp = _now_utc().strftime("%Y%m%d-%H%M%S")
     safe_name = re.sub(r"[^A-Za-z0-9_.-]+", "-", title.lower()).strip("-")[:60] or "incident"
-    report_path = output_dir / f"{stamp}-{safe_name}.md"
-    report_path.write_text(_render_report(title, home, lookback, findings, evidence), encoding="utf-8")
+    # Slugging can itself create a token/phone shape (e.g. "415/555/0137").
+    # Redact that shape before choosing the actual on-disk filename.
+    safe_name = re.sub(r"[^A-Za-z0-9_.-]+", "-", redact(safe_name).lower()).strip("-")[:60] or "incident"
+    stem = f"{stamp}-{safe_name}"
+    report_path = output_dir / f"{stem}.md"
+    report_text = _render_report(title, home, lookback, findings, evidence)
+    suffix = 2
+    while True:
+        try:
+            # Different secret-bearing titles may redact to the same filename.
+            # Exclusive creation also protects concurrent and repeated reports.
+            with report_path.open("x", encoding="utf-8") as report:
+                report.write(report_text)
+            break
+        except FileExistsError:
+            report_path = output_dir / f"{stem}-{suffix}.md"
+            suffix += 1
 
-    out = _result("postmortem", home, findings, extra={"report_path": str(report_path), "evidence_count": len(evidence)})
+    out = _result("postmortem", home, findings, extra={
+        "report_path": str(report_path), "report_filename": report_path.name,
+        "evidence_count": len(evidence),
+    })
+    out["report_path_redacted"] = out["report_path"] != str(report_path)
     out["message"] = "Redacted postmortem report written."
+    if out["report_path_redacted"]:
+        out["message"] += " The directory path is redacted; use report_filename in the selected output directory."
     return out
 
 
