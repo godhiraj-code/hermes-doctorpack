@@ -7,7 +7,6 @@ explicitly statused as ok/warn/fail/unknown with confidence and source evidence.
 from __future__ import annotations
 
 import datetime as dt
-import json
 import os
 import platform
 import re
@@ -17,12 +16,21 @@ from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any, Iterable
 
-try:  # Hermes already depends on PyYAML, but keep a fallback for tests/minimal envs.
+try:  # PyYAML is a Doctorpack dependency; retain a fallback for minimal environments.
     import yaml  # type: ignore
 except Exception:  # pragma: no cover
     yaml = None
 
 SECRET_PATTERNS: tuple[re.Pattern[str], ...] = (
+    re.compile(
+        r"(?i)([\"']?(?:api[_-]?key|token|secret|password|passwd|pwd|authorization)[\"']?)"
+        r"(\s*[:=]\s*)([\"'])"
+        # Consume escaped/doubled quotes, including a final lone escape in a log tail.
+        r"((?:\\[^\r\n]|\3\3|(?!\3)[^\\\r\n]|\\(?=[\r\n]|$))*)(?:\3|(?=[\r\n]|$))"
+    ),
+    re.compile(r"(?i)(authorization)(\s*[:=]\s*)((?:bearer|basic)\s+[^\s'\"{},;]+)"),
+    re.compile(r"(?i)(\bbearer\s+[^\s'\"{},;]+)"),
+    re.compile(r"(github_pat_[A-Za-z0-9_]{20,})"),
     re.compile(r"(?i)(api[_-]?key|token|secret|password|passwd|pwd|bearer|authorization)(\s*[:=]\s*)([^\s'\"{},;]+)"),
     re.compile(r"(?i)(sk-[A-Za-z0-9_\-]{20,})"),
     re.compile(r"(?i)(xox[baprs]-[A-Za-z0-9\-]{20,})"),
@@ -226,10 +234,11 @@ def _redact_obj(obj: Any) -> Any:
     if isinstance(obj, dict):
         out = {}
         for k, v in obj.items():
-            if re.search(r"(?i)(key|token|secret|password|client_secret|webhook)", str(k)):
-                out[k] = "[REDACTED]"
+            safe_key = redact(k) if isinstance(k, str) else k
+            if re.search(r"(?i)(key|token|secret|password|passwd|pwd|authorization|client_secret|webhook)", str(k)):
+                out[safe_key] = "[REDACTED]"
             else:
-                out[k] = _redact_obj(v)
+                out[safe_key] = _redact_obj(v)
         return out
     if isinstance(obj, list):
         return [_redact_obj(x) for x in obj]
@@ -392,7 +401,7 @@ def postmortem(args: dict[str, Any]) -> dict[str, Any]:
     home = discover_hermes_home(args.get("hermes_home"))
     lookback = int(args.get("lookback_hours") or 24)
     max_evidence = int(args.get("max_evidence") or 20)
-    title = str(args.get("incident_title") or "Hermes diagnostic incident").strip()
+    title = redact(str(args.get("incident_title") or "Hermes diagnostic incident")).strip()
     output_dir = Path(args.get("output_dir") or (home / "doctorpack" / "reports")).expanduser()
 
     audit = config_audit({"hermes_home": str(home), "lookback_hours": lookback, "include_logs": True})
@@ -446,7 +455,8 @@ def _result(kind: str, home: Path, findings: list[Finding], extra: dict[str, Any
     }
     if extra:
         payload.update(extra)
-    return payload
+    # Config-derived findings and plugin metadata can contain secrets too.
+    return _redact_obj(payload)
 
 
 def _render_report(title: str, home: Path, lookback: int, findings: list[Finding], evidence: list[Evidence]) -> str:

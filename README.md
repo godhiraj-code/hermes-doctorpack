@@ -129,6 +129,9 @@ Doctorpack does not replace those surfaces. It sits on top of them as a local tr
 - No telemetry, no upload, no external service dependency.
 
 Review generated reports before sharing them publicly. Pattern-based redaction is useful, not magic.
+Returned path fields are also redacted; if a directory name contains a recognized
+secret or email address, locate the report in the output directory you selected
+instead of treating a path containing `[REDACTED...]` as a filesystem path.
 
 ## Install / distribute
 
@@ -226,18 +229,31 @@ Current test suite covers:
 - postmortem Markdown report generation
 - Hermes plugin registration for tools, slash command, and CLI command
 - tool handler returns valid JSON
+- directory loading outside the checkout without an editable install
+- real wheel installation and entry-point discovery, including conflicting installed copies
+- internal import failures remain visible instead of falling back to another installed copy
+- complete tool JSON and postmortem redaction, including structured credentials, parser errors, and truncated quoted log values
+
+PyYAML is bounded to `>=6.0,<7`: 6.0 retains the existing supported floor and
+provides [Python 3.10 wheels](https://pypi.org/project/PyYAML/6.0/#files), while
+the upper bound excludes an untested major release. CI checks 6.0 on Python 3.10
+as well as the current compatible 6.x release.
 
 Run locally:
 
 ```bash
+python -m pip install -e . pytest build "setuptools>=68" wheel ruff
+python -m ruff check --isolated --select E4,E7,E9,F __init__.py hermes_doctorpack tests
 PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 python -m pytest -q
 ```
 
-Expected result:
-
-```text
-..........                                                               [100%]
-```
+The loading tests build and install a wheel offline in temporary virtual
+environments. Keep the test temporary directory outside the checkout.
+These checks exercise the import boundary and plugin handlers; they do not
+replace the [Hermes catalog admission checks](https://github.com/NousResearch/hermes-agent/blob/main/plugin-catalog/README.md).
+Before any catalog submission, run `hermes plugins validate <plugin-directory> --install-deps`
+in a complete, isolated Hermes environment and inspect dependency preparation
+errors as well as the validation report.
 
 ## MVP scope
 

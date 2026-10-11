@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from .audit import config_audit, plugin_check, postmortem
+from .audit import config_audit, plugin_check, postmortem, redact
 from .schemas import CONFIG_AUDIT_SCHEMA, PLUGIN_CHECK_SCHEMA, POSTMORTEM_SCHEMA
 
 
@@ -20,7 +20,7 @@ def _json_handler(fn):
                     "success": False,
                     "status": "error",
                     "error": "doctorpack_internal_error",
-                    "message": str(exc),
+                    "message": redact(exc),
                 },
                 ensure_ascii=False,
             )
