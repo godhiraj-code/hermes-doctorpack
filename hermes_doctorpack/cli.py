@@ -40,7 +40,10 @@ def _summarize(result: dict[str, Any]) -> str:
         f"Findings: fail={counts.get('fail', 0)} warn={counts.get('warn', 0)} unknown={counts.get('unknown', 0)} ok={counts.get('ok', 0)}",
     ]
     if result.get("report_path"):
-        lines.append(f"Report: {result['report_path']}")
+        if result.get("report_path_redacted"):
+            lines.append(f"Report filename: {result['report_filename']} (in the selected output directory)")
+        else:
+            lines.append(f"Report: {result['report_path']}")
     lines.append("")
     for f in result.get("findings", [])[:12]:
         lines.append(f"[{f['status']}] {f['title']} — {f['summary']}")

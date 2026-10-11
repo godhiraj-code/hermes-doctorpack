@@ -1,3 +1,4 @@
+import datetime as dt
 import json
 from pathlib import Path
 
@@ -5,6 +6,7 @@ import pytest
 
 import hermes_doctorpack
 from hermes_doctorpack.audit import config_audit, plugin_check, postmortem, redact
+from hermes_doctorpack.cli import doctorpack_command
 
 
 @pytest.mark.parametrize("raw", [
@@ -45,6 +47,19 @@ def test_escaped_and_truncated_quoted_values(raw):
 def test_quoted_redaction_preserves_following_fields():
     raw = json.dumps({"password": 'prefix"synthetic-tail', "status": "healthy"})
     assert '"status": "healthy"' in redact(raw)
+    assert json.loads(redact(raw)) == {"password": "[REDACTED]", "status": "healthy"}
+
+
+@pytest.mark.parametrize("suffix", ["|status=healthy", "&retry=true", "/safe/KEEP"])
+def test_quoted_redaction_preserves_adjacent_safe_suffix(tmp_path, suffix):
+    raw = '2099-01-01T00:00:00Z ERROR plugin password="synthetic-private"' + suffix
+    assert suffix in redact(raw)
+    (tmp_path / "logs").mkdir()
+    (tmp_path / "logs" / "agent.log").write_text(raw, encoding="utf-8")
+    result = config_audit({"hermes_home": str(tmp_path)})
+    evidence = next(f for f in result["findings"] if f["id"] == "logs.recent_issues")["evidence"]
+    assert suffix in evidence[0]["message"]
+    assert "synthetic-private" not in json.dumps(result)
 
 
 @pytest.fixture
@@ -176,3 +191,65 @@ def test_registered_error_json_redacts_parser_snippets(tmp_path, registered_hand
     assert result["success"] is False
     assert result["error"] == "doctorpack_internal_error"
     assert "[REDACTED]" in result["message"]
+
+
+def test_masked_mapping_keys_preserve_all_values_and_safe_neighbor_keys(tmp_path):
+    routes = {
+        "synthetic-one@example.invalid": {"status": "healthy"},
+        "synthetic-two@example.invalid": {"status": "degraded"},
+        "[REDACTED_EMAIL]": {"status": "safe-original"},
+        "[REDACTED_EMAIL] (2)": {"status": "safe-suffix"},
+    }
+    (tmp_path / "config.yaml").write_text(json.dumps({"gateway": {"routes": routes}}), encoding="utf-8")
+    # This traverses both the config view and complete-result redaction passes.
+    result = config_audit({"hermes_home": str(tmp_path), "include_logs": False})
+    safe_routes = result["config_view_redacted"]["gateway"]["routes"]
+    assert len(safe_routes) == len(routes)
+    assert {value["status"] for value in safe_routes.values()} == {
+        "healthy", "degraded", "safe-original", "safe-suffix",
+    }
+    assert safe_routes["[REDACTED_EMAIL]"] == routes["[REDACTED_EMAIL]"]
+    assert safe_routes["[REDACTED_EMAIL] (2)"] == routes["[REDACTED_EMAIL] (2)"]
+    assert "synthetic-" not in json.dumps(result)
+
+
+def test_redacted_titles_never_overwrite_an_existing_report(tmp_path, monkeypatch):
+    now = dt.datetime(2026, 10, 11, 12, 0, tzinfo=dt.timezone.utc)
+    monkeypatch.setattr("hermes_doctorpack.audit._now_utc", lambda: now)
+    logs = tmp_path / "logs"
+    logs.mkdir()
+    (logs / "agent.log").write_text("ERROR first safe incident", encoding="utf-8")
+    first = postmortem({"hermes_home": str(tmp_path), "incident_title": "Gateway token=synthetic-first"})
+    first_text = Path(first["report_path"]).read_text(encoding="utf-8")
+    (logs / "agent.log").write_text("ERROR second safe incident", encoding="utf-8")
+    second = postmortem({"hermes_home": str(tmp_path), "incident_title": "Gateway token=synthetic-second"})
+    assert first["report_path"] != second["report_path"]
+    assert Path(first["report_path"]).read_text(encoding="utf-8") == first_text
+    assert "first safe incident" in first_text
+    assert "second safe incident" in Path(second["report_path"]).read_text(encoding="utf-8")
+    assert "synthetic-" not in json.dumps([first, second])
+    assert first["report_path_redacted"] is False
+
+
+def test_masked_report_directory_returns_usable_filename(tmp_path):
+    output_dir = tmp_path / "synthetic-person@example.invalid"
+    result = postmortem({"hermes_home": str(tmp_path), "output_dir": str(output_dir)})
+    assert result["report_path_redacted"] is True
+    assert "synthetic-person" not in json.dumps(result)
+    assert Path(result["report_filename"]).name == result["report_filename"]
+    assert (output_dir / result["report_filename"]).is_file()
+    summary = doctorpack_command(
+        f'postmortem --hermes-home "{tmp_path}" --output-dir "{output_dir}"'
+    )
+    assert "Report filename:" in summary
+    assert "selected output directory" in summary
+    assert "synthetic-person" not in summary
+
+
+@pytest.mark.parametrize("title", ["sk abcdefghijklmnopqrstuv", "Incident 415/555/0137"])
+def test_normalized_report_filename_remains_usable(tmp_path, title):
+    output_dir = tmp_path / "reports"
+    result = postmortem({"hermes_home": str(tmp_path), "output_dir": str(output_dir), "incident_title": title})
+    assert result["report_path_redacted"] is False
+    assert Path(result["report_path"]).is_file()
+    assert (output_dir / result["report_filename"]).is_file()

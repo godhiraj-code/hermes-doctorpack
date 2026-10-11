@@ -130,8 +130,10 @@ Doctorpack does not replace those surfaces. It sits on top of them as a local tr
 
 Review generated reports before sharing them publicly. Pattern-based redaction is useful, not magic.
 Returned path fields are also redacted; if a directory name contains a recognized
-secret or email address, locate the report in the output directory you selected
-instead of treating a path containing `[REDACTED...]` as a filesystem path.
+secret or email address, `report_path_redacted` is true. Use `report_filename` in
+the output directory you selected instead of treating a path containing
+`[REDACTED...]` as a filesystem path. Reports never overwrite an existing file;
+colliding names receive a numeric suffix.
 
 ## Install / distribute
 
