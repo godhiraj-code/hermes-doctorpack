@@ -133,14 +133,14 @@ def _rel(path: Path, home: Path) -> str:
 def discover_hermes_home(explicit: str | None = None) -> Path:
     if explicit:
         return Path(explicit).expanduser().resolve()
-    env = os.environ.get("HERMES_HOME")
-    if env:
-        return Path(env).expanduser().resolve()
     try:
         from hermes_constants import get_hermes_home  # type: ignore
         return Path(get_hermes_home()).expanduser().resolve()
     except Exception:
         pass
+    env = os.environ.get("HERMES_HOME")
+    if env:
+        return Path(env).expanduser().resolve()
     if platform.system().lower() == "windows":
         base = os.environ.get("LOCALAPPDATA") or os.environ.get("APPDATA")
         if base:
