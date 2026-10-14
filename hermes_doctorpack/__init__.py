@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from .audit import config_audit, plugin_check, postmortem, redact
+from .audit import config_audit, discover_hermes_home, plugin_check, postmortem, redact
 from .schemas import CONFIG_AUDIT_SCHEMA, PLUGIN_CHECK_SCHEMA, POSTMORTEM_SCHEMA
 
 
@@ -13,7 +13,7 @@ def _json_handler(fn):
     def _handle(args: dict[str, Any] | None = None, **kwargs: Any) -> str:
         del kwargs
         try:
-            return json.dumps(fn(args or {}), ensure_ascii=False, indent=2)
+            return json.dumps(fn(args if args is not None else {}), ensure_ascii=False, indent=2)
         except Exception as exc:  # defensive: tool handlers must not throw into Hermes loop
             return json.dumps(
                 {
@@ -26,6 +26,18 @@ def _json_handler(fn):
             )
 
     return _handle
+
+
+def _model_postmortem(args: dict[str, Any]) -> dict[str, Any]:
+    # Model calls cannot select filesystem paths; CLI/slash overrides stay user-directed.
+    allowed = {"incident_title", "lookback_hours", "max_evidence"}
+    if not isinstance(args, dict) or set(args) - allowed:
+        raise ValueError("Unsupported postmortem tool arguments.")
+    home = discover_hermes_home().resolve()
+    reports = home / "doctorpack" / "reports"
+    if reports.resolve() != reports:
+        raise ValueError("The active profile's report directory must not be redirected by symlinks.")
+    return postmortem({**args, "hermes_home": str(home), "output_dir": str(reports)})
 
 
 def _handle_slash(raw_args: str = "") -> str:
@@ -58,7 +70,7 @@ def register(ctx) -> None:
         name="doctorpack_postmortem",
         toolset="doctorpack",
         schema=POSTMORTEM_SCHEMA,
-        handler=_json_handler(postmortem),
+        handler=_json_handler(_model_postmortem),
         description="Generate a local redacted Hermes incident postmortem report.",
         emoji="📋",
     )
