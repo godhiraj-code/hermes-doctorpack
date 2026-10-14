@@ -165,8 +165,12 @@ def registered_handlers():
 
 
 @pytest.mark.parametrize("name", ["config_audit", "plugin_check", "postmortem"])
-def test_registered_handlers_redact_entire_json(synthetic_home, registered_handlers, name):
-    raw = registered_handlers[f"doctorpack_{name}"](_tool_args(synthetic_home))
+def test_registered_handlers_redact_entire_json(synthetic_home, registered_handlers, name, monkeypatch):
+    args = _tool_args(synthetic_home)
+    if name == "postmortem":
+        monkeypatch.setattr(hermes_doctorpack, "discover_hermes_home", lambda: synthetic_home)
+        args = {"incident_title": args["incident_title"]}
+    raw = registered_handlers[f"doctorpack_{name}"](args)
     assert "synthetic-" not in raw
     assert "synthetic_private" not in raw
     _assert_safe_result(json.loads(raw))
@@ -181,11 +185,15 @@ def test_plugin_target_findings_are_redacted(synthetic_home, target):
 
 
 @pytest.mark.parametrize("name", ["config_audit", "plugin_check", "postmortem"])
-def test_registered_error_json_redacts_parser_snippets(tmp_path, registered_handlers, name):
+def test_registered_error_json_redacts_parser_snippets(tmp_path, registered_handlers, name, monkeypatch):
     (tmp_path / "config.yaml").write_text(
         'model:\n  authorization: "synthetic-parser-value\n', encoding="utf-8",
     )
-    raw = registered_handlers[f"doctorpack_{name}"](_tool_args(tmp_path))
+    args = _tool_args(tmp_path)
+    if name == "postmortem":
+        monkeypatch.setattr(hermes_doctorpack, "discover_hermes_home", lambda: tmp_path)
+        args = {"incident_title": args["incident_title"]}
+    raw = registered_handlers[f"doctorpack_{name}"](args)
     assert "synthetic-parser-value" not in raw
     result = json.loads(raw)
     assert result["success"] is False
