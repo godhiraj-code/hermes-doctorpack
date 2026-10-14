@@ -106,6 +106,18 @@ HERMES_HOME/doctorpack/reports/
 
 The report includes summary, findings, evidence, recommendations, and a short explanation of how Doctorpack differs from built-in Hermes diagnostics.
 
+Model postmortem calls always use the active Hermes profile and write only to its
+`doctorpack/reports` directory. The tool exposes no `output_dir` or `hermes_home`
+override, rejects unsupported arguments, and refuses report-directory symlink
+redirection. This does not protect against a separate local process racing
+filesystem changes.
+
+User-entered CLI and slash commands retain `--hermes-home` and `--output-dir`
+for inspecting a selected home or writing reports to a selected local directory.
+The config-audit and plugin-check tools remain read-only and can inspect an
+explicit home. Default home detection prefers Hermes's profile-aware helper,
+falling back to environment/platform paths for standalone use.
+
 ## How it is different from Hermes doctor, debug, and logs
 
 | Built-in surface | What it does | What Doctorpack adds |
@@ -235,6 +247,7 @@ Current test suite covers:
 - real wheel installation and entry-point discovery, including conflicting installed copies
 - internal import failures remain visible instead of falling back to another installed copy
 - complete tool JSON and postmortem redaction, including structured credentials, parser errors, and truncated quoted log values
+- model postmortem path rejection, active-profile output, directory symlink rejection, and retained user CLI/slash overrides
 
 PyYAML is bounded to `>=6.0,<7`: 6.0 retains the existing supported floor and
 provides [Python 3.10 wheels](https://pypi.org/project/PyYAML/6.0/#files), while

@@ -54,19 +54,17 @@ POSTMORTEM_SCHEMA = {
     "name": "doctorpack_postmortem",
     "description": (
         "Create a local redacted incident postmortem from Hermes logs/config evidence. "
-        "Writes a Markdown report and returns the report path plus structured findings."
+        "Writes only to the active Hermes profile's doctorpack/reports directory "
+        "and returns the report path plus structured findings."
     ),
     "parameters": {
         "type": "object",
+        "additionalProperties": False,
         "properties": {
-            **_COMMON_PROPS,
+            "lookback_hours": _COMMON_PROPS["lookback_hours"],
             "incident_title": {
                 "type": "string",
                 "description": "Short incident title. Default: Hermes diagnostic incident.",
-            },
-            "output_dir": {
-                "type": "string",
-                "description": "Directory where the Markdown report should be written. Defaults to HERMES_HOME/doctorpack/reports.",
             },
             "max_evidence": {
                 "type": "integer",
