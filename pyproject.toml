@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=68", "wheel"]
+requires = ["setuptools>=77", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -10,8 +10,43 @@ readme = "README.md"
 requires-python = ">=3.10"
 authors = [{ name = "Dhiraj Das" }]
 license = "MIT"
-keywords = ["hermes-agent", "plugin", "diagnostics", "postmortem", "agent-safety"]
+keywords = [
+  "hermes-agent",
+  "hermes-plugin",
+  "nous-research",
+  "plugin",
+  "diagnostics",
+  "postmortem",
+  "incident-postmortem",
+  "agent-safety",
+  "observability",
+  "local-first",
+  "ai-agents",
+]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Environment :: Console",
+  "Intended Audience :: Developers",
+  "Intended Audience :: System Administrators",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
+  "Topic :: Software Development :: Debuggers",
+  "Topic :: System :: Logging",
+  "Topic :: System :: Monitoring",
+]
 dependencies = ["PyYAML>=6.0,<7"]
+
+[project.urls]
+Homepage = "https://www.dhirajdas.dev/project/hermes-doctorpack"
+Documentation = "https://github.com/godhiraj-code/hermes-doctorpack#readme"
+Repository = "https://github.com/godhiraj-code/hermes-doctorpack"
+Issues = "https://github.com/godhiraj-code/hermes-doctorpack/issues"
 
 [project.entry-points."hermes_agent.plugins"]
 doctorpack = "hermes_doctorpack"

@@ -1,8 +1,38 @@
 # hermes-doctorpack
 
-Local-first diagnostics, plugin health checks, safety signals, and incident postmortems for [Hermes Agent](https://github.com/NousResearch/hermes-agent).
+[![tests](https://github.com/godhiraj-code/hermes-doctorpack/actions/workflows/tests.yml/badge.svg)](https://github.com/godhiraj-code/hermes-doctorpack/actions/workflows/tests.yml)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://github.com/godhiraj-code/hermes-doctorpack/blob/main/pyproject.toml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/godhiraj-code/hermes-doctorpack/blob/main/LICENSE)
 
-Doctorpack is for the moment when Hermes is technically running, but something around plugins, gateway delivery, config, cron/MCP noise, or logs feels wrong and raw logs are too noisy to interpret quickly.
+**Hermes is technically running, but something around plugins, gateway delivery, config, cron/MCP noise, or logs feels wrong, and the raw logs are too noisy to interpret quickly.** That is the moment Doctorpack is for.
+
+hermes-doctorpack (installs as the `doctorpack` plugin) provides local-first diagnostics, plugin health checks, safety signals, and incident postmortems for [Hermes Agent](https://github.com/NousResearch/hermes-agent).
+
+## Quick start
+
+```bash
+git clone https://github.com/godhiraj-code/hermes-doctorpack.git
+mkdir -p ~/.hermes/plugins
+cp -R hermes-doctorpack ~/.hermes/plugins/doctorpack
+hermes plugins enable doctorpack
+```
+
+Start a new Hermes session, then run:
+
+```text
+/doctorpack scan
+```
+
+No Hermes session handy? Install with pip and use the standalone CLI:
+
+```bash
+pip install git+https://github.com/godhiraj-code/hermes-doctorpack.git
+hermes-doctorpack scan --hermes-home /path/to/hermes/home
+```
+
+Windows paths and other install options are in [Install / distribute](#install--distribute).
+
+**Learn more:** [Project page](https://www.dhirajdas.dev/project/hermes-doctorpack) · Related reading: [Practical Hermes Agent use cases for QA engineers](https://www.dhirajdas.dev/blog/hermes-agent-practical-qa-use-cases)
 
 It turns local Hermes evidence into conservative, redacted findings:
 
@@ -46,11 +76,11 @@ The important design choice: **missing evidence is `unknown`, not `fail`; log ke
 
 A sanitized sample report is included here:
 
-- [`docs/sample-report.md`](docs/sample-report.md)
+- [`docs/sample-report.md`](https://github.com/godhiraj-code/hermes-doctorpack/blob/main/docs/sample-report.md)
 
 Scenario QA reports generated from fake Hermes homes are here:
 
-- [`docs/scenario-reports/`](docs/scenario-reports/)
+- [`docs/scenario-reports/`](https://github.com/godhiraj-code/hermes-doctorpack/tree/main/docs/scenario-reports)
 
 Those scenarios cover clean config, unsafe config, installed-but-not-enabled plugin, enabled/disabled conflict, and redacted plugin log noise.
 
@@ -257,7 +287,7 @@ as well as the current compatible 6.x release.
 Run locally:
 
 ```bash
-python -m pip install -e . pytest build "setuptools>=68" wheel ruff
+python -m pip install -e . pytest build "setuptools>=77" wheel ruff
 python -m ruff check --isolated --select E4,E7,E9,F __init__.py hermes_doctorpack tests
 PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 python -m pytest -q
 ```
@@ -269,6 +299,23 @@ replace the [Hermes catalog admission checks](https://github.com/NousResearch/he
 Before any catalog submission, run `hermes plugins validate <plugin-directory> --install-deps`
 in a complete, isolated Hermes environment and inspect dependency preparation
 errors as well as the validation report.
+
+## FAQ and troubleshooting
+
+**Doctorpack says `config.yaml missing` / it inspected the wrong Hermes home.**
+Doctorpack looks for the Hermes home in this order: `--hermes-home` (CLI and slash command), Hermes's own profile-aware helper when it runs inside Hermes, the `HERMES_HOME` environment variable, then `%LOCALAPPDATA%\hermes` (or `%APPDATA%\hermes`) on Windows and `~/.hermes` on macOS and Linux. If your home is elsewhere, set `HERMES_HOME` or pass `--hermes-home`.
+
+**Does it upload my logs or config anywhere?**
+No. It makes no network calls and has no telemetry. Evidence is redacted before it's returned, and the only file it writes is the Markdown postmortem under `HERMES_HOME/doctorpack/reports/` (or the `--output-dir` you choose). Review reports before sharing them: pattern-based redaction is useful, not magic.
+
+**What does `unknown` mean?**
+Doctorpack didn't have enough evidence to decide, for example because there's no config file, no logs, or a plugin that may be installed outside your user plugin folder. `unknown` is neither healthy nor broken. See [False-report guardrails](#false-report-guardrails).
+
+**A `warn` points at a log line. Is that the root cause?**
+Not by itself. Log keyword matches are triage evidence; check the timestamps and the adjacent log lines before you assign a root cause.
+
+**Does it change my Hermes config?**
+No. `scan` (config audit) and `plugins` (plugin check) are read-only. `postmortem` only writes a new report file and never overwrites an existing one.
 
 ## MVP scope
 
