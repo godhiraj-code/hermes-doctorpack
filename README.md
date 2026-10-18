@@ -32,7 +32,7 @@ hermes-doctorpack scan --hermes-home /path/to/hermes/home
 
 Windows paths and other install options are in [Install / distribute](#install--distribute).
 
-**Learn more:** [Project page](https://www.dhirajdas.dev/project/hermes-doctorpack) · Related reading: [Practical Hermes Agent use cases for QA engineers](https://www.dhirajdas.dev/blog/hermes-agent-practical-qa-use-cases)
+**Learn more:** [Project page](https://www.dhirajdas.dev/project/hermes-doctorpack) · Related reading: [Practical Hermes Agent use cases for QA engineers](https://www.dhirajdas.dev/blog/hermes-agent-practical-qa-use-cases) · [Follow @dkkkkd on X](https://x.com/dkkkkd)
 
 It turns local Hermes evidence into conservative, redacted findings:
 
