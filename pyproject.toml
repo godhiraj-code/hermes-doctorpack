@@ -47,6 +47,7 @@ Homepage = "https://www.dhirajdas.dev/project/hermes-doctorpack"
 Documentation = "https://github.com/godhiraj-code/hermes-doctorpack#readme"
 Repository = "https://github.com/godhiraj-code/hermes-doctorpack"
 Issues = "https://github.com/godhiraj-code/hermes-doctorpack/issues"
+X = "https://x.com/dkkkkd"
 
 [project.entry-points."hermes_agent.plugins"]
 doctorpack = "hermes_doctorpack"
