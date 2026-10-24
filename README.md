@@ -10,12 +10,13 @@ hermes-doctorpack (installs as the `doctorpack` plugin) provides local-first dia
 
 ## Quick start
 
+Doctorpack is listed in the [Hermes plugin catalog](https://hermes-agent.nousresearch.com/docs/plugins/doctorpack), so Hermes can install it by name:
+
 ```bash
-git clone https://github.com/godhiraj-code/hermes-doctorpack.git
-mkdir -p ~/.hermes/plugins
-cp -R hermes-doctorpack ~/.hermes/plugins/doctorpack
-hermes plugins enable doctorpack
+hermes plugins install doctorpack
 ```
+
+Answer `y` when Hermes asks to enable it and to prepare its Python dependency (PyYAML). For scripted installs, `hermes plugins install doctorpack --enable --yes-deps` skips both prompts.
 
 Start a new Hermes session, then run:
 
@@ -30,7 +31,7 @@ pip install git+https://github.com/godhiraj-code/hermes-doctorpack.git
 hermes-doctorpack scan --hermes-home /path/to/hermes/home
 ```
 
-Windows paths and other install options are in [Install / distribute](#install--distribute).
+Doctorpack is not published on PyPI, so `pip install hermes-doctorpack` will not find it. Windows paths and other install options are in [Install / distribute](#install--distribute).
 
 **Learn more:** [Project page](https://www.dhirajdas.dev/project/hermes-doctorpack) · Related reading: [Practical Hermes Agent use cases for QA engineers](https://www.dhirajdas.dev/blog/hermes-agent-practical-qa-use-cases) · [Follow @dkkkkd on X](https://x.com/dkkkkd)
 
@@ -179,6 +180,14 @@ colliding names receive a numeric suffix.
 
 ## Install / distribute
 
+### Hermes plugin catalog
+
+```bash
+hermes plugins install doctorpack
+```
+
+The catalog entry pins a reviewed commit of this repo, so it can trail `main` until the pin is bumped in [hermes-agent](https://github.com/NousResearch/hermes-agent/blob/main/plugin-catalog/doctorpack.yaml). Use Option A to run the latest `main`.
+
 ### Option A — GitHub install as a user plugin
 
 Use this today:
@@ -218,16 +227,6 @@ The package exposes a Hermes plugin entry point:
 [project.entry-points."hermes_agent.plugins"]
 doctorpack = "hermes_doctorpack"
 ```
-
-### Option C — future PyPI release
-
-Once the plugin has a few dogfood runs and feedback from Hermes users:
-
-```bash
-pip install hermes-doctorpack
-```
-
-This repo is already structured for that; publishing to PyPI is intentionally not done yet.
 
 ## Usage
 
